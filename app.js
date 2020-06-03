@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const aggregatedRouter = require('./routes/aggregatedRouter');
 
-const connectDB = require('./config/db');
+const connectDB = require('./db/db');
 
 // load config
 const configPath = path.resolve('config', 'config.env');
@@ -15,7 +15,7 @@ dotenv.config({ path: configPath, encoding: 'utf8' });
 
 // -----------add anything new after this line--------
 
-connectDB();
+// connectDB();
 
 const app = express();
 

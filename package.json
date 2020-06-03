@@ -1,0 +1,34 @@
+{
+  "name": "backpack-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www",
+    "serverstart": "DEBUG=express-locallibrary-tutorial:* npm run devstart"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "dotenv": "^8.2.0",
+    "express": "~4.16.1",
+    "mongoose": "^5.9.17",
+    "morgan": "~1.9.1",
+    "passport": "^0.4.1",
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth": "^2.0.0",
+    "passport-http-bearer": "^1.0.1",
+    "rotating-file-stream": "^2.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-prettier": "^3.1.3",
+    "lint": "^0.7.0",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.0.5"
+  }
+}

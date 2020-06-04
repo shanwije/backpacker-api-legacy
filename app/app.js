@@ -4,7 +4,9 @@ const dotenv = require('dotenv');
 const rfs = require('rotating-file-stream');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const colors = require('colors');
 const aggregatedRouter = require('./routes/aggregatedRouter');
+const errorHandler = require('./middleware/errorHandler');
 
 const connectDB = require('./db/db');
 
@@ -37,5 +39,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // mount routers
 app.use('/api/v1/', aggregatedRouter);
+app.use(errorHandler);
 
 module.exports = app;

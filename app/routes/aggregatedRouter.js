@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const responseSender = require('../middleware/responseSender');
 
 const indexRouter = require('./index');
 const usersRouter = require('./users');

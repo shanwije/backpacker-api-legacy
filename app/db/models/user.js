@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -8,7 +9,7 @@ const userSchema = new mongoose.Schema({
             'please provide a valid email',
         ],
         required: [true, 'required a name'],
-        maxlength: [50, 'email max length cannot exceed 50 chars '],
+        maxLength: [50, 'email max length cannot exceed 50 chars '],
         trim: true,
         unique: [true, 'this email is already exists'],
     },

@@ -1,37 +1,50 @@
 const express = require('express');
-const user = require('./../db/models/user');
+const _ = require('lodash');
+const user = require('../db/models/user');
+const ErrorResponse = require('../util/ErrorResponse');
+const statusCodes = require('../const/statusCodes');
 
 const router = express.Router();
 
-router.post('/sign-in', function (req, res, next) {
-    console.log('sign-in', req.body);
-
-    user.create(req.body)
-        .then((userRecord) => {
-            res.status(201).json({
-                success: true,
-                data: userRecord,
-            });
-        })
-        .catch((err) =>
-            res.status(500).json({ success: false, error: err.message }),
-        );
+router.post('/sign-in', async (req, res, next) => {
+    try {
+        const userRecord = await user.create(req.body);
+        res.status(statusCodes.CREATED).json({
+            success: true,
+            data: userRecord,
+        });
+    } catch (err) {
+        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
+    }
 });
 
-router.get('/sign-in', function (req, res, next) {
+router.get('/sign-in', async (req, res, next) => {
     try {
-        user.find({ email: req.query.email }, function (err, users) {
+        const usersRecord = await user.find();
+        res.status(statusCodes.CREATED).json({
+            success: true,
+            data: usersRecord,
+        });
+    } catch (err) {
+        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
+    }
+});
+
+router.get('/sign-in/:id', (req, res, next) => {
+    try {
+        user.findById(req.params.id, (err, users) => {
             if (err) {
-                res.status(500).json({ success: false, error: err.message });
+                console.log(err.name.green);
+                next(new ErrorResponse(err, statusCodes.NOT_FOUND));
             } else {
-                res.status(201).json({
+                res.status(statusCodes.OK).json({
                     success: true,
                     data: users,
                 });
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });
 

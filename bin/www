@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-shadow */
+/* eslint-disable no-restricted-globals */
 
 /**
  * Module dependencies.
@@ -25,10 +28,10 @@ const server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-const runningServer = server.listen(
+server.listen(
     port,
     console.log(
-        `server running in ${process.env.NODE_ENV} mode on port ${port}`,
+        `server running in ${process.env.NODE_ENV} mode on port ${port}`.yellow,
     ),
 );
 

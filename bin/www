@@ -58,10 +58,10 @@ function normalizePort(val) {
 /**
  * for unhandled promise rejections (especially db connections)
  */
-process.on('unhandledRejection', (err, promise) => {
-    console.error(`Error: ${JSON.stringify(err, null, '\t')}`);
-    runningServer.close(() => process.exit(1));
-});
+// process.on('unhandledRejection', (err, promise) => {
+//     console.error(`Error: ${JSON.stringify(err, null, '\t')}`);
+//     runningServer.close(() => process.exit(1));
+// });
 
 /**
  * Event listener for HTTP server "error" event.

@@ -28,6 +28,8 @@ const accessLogStream = rfs.createStream('access.log', {
 const logginFormat =
     process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
 app.use(logger(logginFormat, { stream: accessLogStream }));
+
+// body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
         required: [true, 'required a name'],
         maxlength: [50, 'email max length cannot exceed 50 chars '],
         trim: true,
-        unique: true,
+        unique: [true, 'this email is already exists'],
     },
     slug: String,
     password: {

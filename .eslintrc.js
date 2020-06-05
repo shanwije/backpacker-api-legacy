@@ -17,5 +17,6 @@ module.exports = {
         'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
         'prettier/prettier': ['error'],
         'no-unused-vars': 'off',
+        'func-names': 'off',
     },
 };

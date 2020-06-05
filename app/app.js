@@ -1,14 +1,11 @@
 const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
-const rfs = require('rotating-file-stream');
 const cookieParser = require('cookie-parser');
-const logger = require('morgan');
 const colors = require('colors');
-const aggregatedRouter = require('./routes/aggregatedRouter');
-const errorHandler = require('./middleware/errorHandler');
-
-const connectDB = require('./db/db');
+const aggregatedRouter = require('./aggregatedRouter');
+const errorHandler = require('./common/middleware/errorHandlerMiddleware');
+const connectDB = require('./common/db/dbSetup');
 
 // load config
 const configPath = path.resolve('config', 'config.env');
@@ -20,16 +17,6 @@ dotenv.config({ path: configPath, encoding: 'utf8' });
 connectDB();
 
 const app = express();
-
-// create a rotating write stream
-// setup the logger
-const accessLogStream = rfs.createStream('access.log', {
-    interval: '1d', // rotate daily
-    path: path.join(__dirname, 'log'),
-});
-const loggingFormat =
-    process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
-app.use(logger(loggingFormat, { stream: accessLogStream }));
 
 // body parser
 app.use(express.json());

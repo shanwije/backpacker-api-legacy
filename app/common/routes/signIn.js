@@ -1,8 +1,8 @@
 const express = require('express');
 const _ = require('lodash');
-const user = require('../db/models/user');
-const ErrorResponse = require('../util/ErrorResponse');
-const statusCodes = require('../const/statusCodes');
+const user = require('../models/userModal');
+const ErrorResponse = require('../../misc/ErrorResponse');
+const statusCodes = require('../../misc/const/statusCodes');
 
 const router = express.Router();
 
@@ -47,11 +47,11 @@ router.post('/sign-in', async (req, res, next) => {
             } else {
                 const token = userRecord.getSignedJWTToken();
                 res.status(statusCodes.OK).json({
-                    success: true, token,
+                    success: true,
+                    token,
                 });
             }
         }
-        console.log(user.red);
     } else {
         next(
             new ErrorResponse(
@@ -75,32 +75,4 @@ router.get('/sign-in', async (req, res, next) => {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });
-
-// router.get('/sign-in/:id', (req, res, next) => {
-//     try {
-//         user.findById(req.params.id, (err, users) => {
-//             if (err) {
-//                 console.log(err.name.green);
-//                 next(new ErrorResponse(err, statusCodes.NOT_FOUND));
-//             } else {
-//                 res.status(statusCodes.OK).json({
-//                     success: true,
-//                     data: users,
-//                 });
-//             }
-//         });
-//     } catch (err) {
-//         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
-//     }
-// });
-
 module.exports = router;
-
-// var express = require('express');
-// var router = express.Router();
-//
-// router.get('/', function(req, res, next) {
-//     res.send('respond with a resource');
-// });
-//
-// module.exports = router;

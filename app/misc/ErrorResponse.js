@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const statusCodes = require('../const/statusCodes');
 
 class ErrorResponse extends Error {
     constructor(err, statusCode, message, errorCode) {

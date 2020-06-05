@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { PUBLISHER, USER } = require('./../../misc/const/userRoles');
 
 const userSchema = new mongoose.Schema(
     {
@@ -25,8 +26,8 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ['user', 'publisher'],
-            default: 'user',
+            enum: [PUBLISHER, USER],
+            default: USER,
         },
         resetPasswordToken: String,
         resetPasswordExpired: Date,
@@ -35,7 +36,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', function emailToLowerCase(next) {
-    this.email = this.email.toLowerCase();
+    this.email = this['email'].toLowerCase();
     next();
 });
 
@@ -48,8 +49,9 @@ userSchema.pre('save', async function encryptPassword(next) {
 
 // sign JWT and return
 userSchema.methods.getSignedJWTToken = function () {
-    return jwt.sign({ id: this.id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE,
+    const { JWT_EXPIRE, JWT_SECRET } = process.env;
+    return jwt.sign({ id: this.id }, JWT_SECRET, {
+        expiresIn: JWT_EXPIRE,
     });
 };
 

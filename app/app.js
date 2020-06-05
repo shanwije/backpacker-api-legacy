@@ -1,6 +1,9 @@
 const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
+const hpp = require('hpp');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const colors = require('colors');
 const aggregatedRouter = require('./aggregatedRouter');
@@ -13,21 +16,36 @@ dotenv.config({ path: configPath, encoding: 'utf8' });
 
 // -----------add anything new after this line--------
 
-// connect with mongoDB
+const app = express();
+
+/**
+ * connect with mongoDB
+ */
 connectDB();
 
-const app = express();
+/**
+ * limit tps count
+ */
+const limiter = rateLimit({
+    windowMs: 1000 * 60, // 1 min
+    max: 40,
+});
+app.use(limiter);
 
 // body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// app.use((req, res, next)=> {
-//     console.log(JSON.stringify(req, null, '\t'));
-//     next();
-// });
+/**
+ * prevent http pollution attacks
+ */
+app.use(hpp());
+
+/**
+ * enable cors
+ */
+app.use(cors());
 
 // mount routers
 app.use('/api/v1/', aggregatedRouter);

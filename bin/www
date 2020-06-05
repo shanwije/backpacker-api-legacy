@@ -10,6 +10,19 @@ const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
 const app = require('../app/app');
+const path = require('path');
+const logger = require('morgan');
+const rfs = require('rotating-file-stream');
+
+// create a rotating write stream
+// setup the logger
+const accessLogStream = rfs.createStream('access.log', {
+    interval: '1d', // rotate daily
+    path: path.join(__dirname, 'log'),
+});
+const loggingFormat =
+    process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
+app.use(logger(loggingFormat, { stream: accessLogStream }));
 
 /**
  * Get port from environment and store in Express.

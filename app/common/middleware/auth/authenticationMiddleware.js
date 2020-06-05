@@ -1,8 +1,8 @@
-const jsonwebtoken = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const _ = require('lodash');
-const user = require('../db/models/user');
-const ErrorResponse = require('../util/ErrorResponse');
-const statusCodes = require('../const/statusCodes');
+const user = require('../../models/userModal');
+const ErrorResponse = require('../../../misc/ErrorResponse');
+const statusCodes = require('../../../misc/const/statusCodes');
 
 async function jwtAuth(req, res, next) {
     const bearerHeader = req.headers.authorization;
@@ -11,7 +11,7 @@ async function jwtAuth(req, res, next) {
         try {
             const bearerToken = bearerHeader.split(' ')[1];
             const { JWT_SECRET } = process.env;
-            const decoded = jsonwebtoken.verify(bearerToken, JWT_SECRET);
+            const decoded = jwt.verify(bearerToken, JWT_SECRET);
             console.log('decoded user', decoded);
 
             req.user = await user.findById(_.get(decoded, 'id', ''));

@@ -27,15 +27,20 @@ const accessLogStream = rfs.createStream('access.log', {
     interval: '1d', // rotate daily
     path: path.join(__dirname, 'log'),
 });
-const logginFormat =
+const loggingFormat =
     process.env.NODE_ENV === 'development' ? 'dev' : 'combined';
-app.use(logger(logginFormat, { stream: accessLogStream }));
+app.use(logger(loggingFormat, { stream: accessLogStream }));
 
 // body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// app.use((req, res, next)=> {
+//     console.log(JSON.stringify(req, null, '\t'));
+//     next();
+// });
 
 // mount routers
 app.use('/api/v1/', aggregatedRouter);

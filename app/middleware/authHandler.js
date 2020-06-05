@@ -10,21 +10,14 @@ async function jwtAuth(req, res, next) {
     if (bearerHeader) {
         try {
             const bearerToken = bearerHeader.split(' ')[1];
-            const decoded = jsonwebtoken.verify(
-                bearerToken,
-                process.env.JWT_SECRET,
-            );
-            console.log(decoded);
+            const { JWT_SECRET } = process.env;
+            const decoded = jsonwebtoken.verify(bearerToken, JWT_SECRET);
+            console.log('decoded user', decoded);
 
             req.user = await user.findById(_.get(decoded, 'id', ''));
             next();
         } catch (err) {
-            next(
-                new ErrorResponse(
-                    err,
-                    statusCodes.FORBIDDEN,
-                ),
-            );
+            next(new ErrorResponse(err, statusCodes.FORBIDDEN));
         }
     } else {
         // Forbidden

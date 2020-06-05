@@ -13,7 +13,7 @@ const connectMongo = async () => {
             mongoConn.connection.host.yellow,
         );
     } catch (err) {
-        console.error('db connectivity failed'.red, err.red);
+        console.error('DB connectivity failed'.red, err);
         process.exit(1);
     }
 };

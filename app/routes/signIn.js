@@ -13,7 +13,7 @@ router.post('/sign-up', async (req, res, next) => {
 
         res.status(statusCodes.CREATED).json({
             success: true,
-            data: { id: _.get(userRecord, 'id'), token },
+            token,
         });
     } catch (err) {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
@@ -47,8 +47,7 @@ router.post('/sign-in', async (req, res, next) => {
             } else {
                 const token = userRecord.getSignedJWTToken();
                 res.status(statusCodes.OK).json({
-                    success: true,
-                    data: { token },
+                    success: true, token,
                 });
             }
         }

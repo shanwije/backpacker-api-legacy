@@ -45,9 +45,10 @@ router.post('/sign-in', async (req, res, next) => {
                     ),
                 );
             } else {
+                const token = userRecord.getSignedJWTToken();
                 res.status(statusCodes.OK).json({
                     success: true,
-                    data: userRecord,
+                    data: { token },
                 });
             }
         }
@@ -64,17 +65,17 @@ router.post('/sign-in', async (req, res, next) => {
     }
 });
 
-// router.get('/sign-in', async (req, res, next) => {
-//     try {
-//         const usersRecord = await user.find();
-//         res.status(statusCodes.CREATED).json({
-//             success: true,
-//             data: usersRecord,
-//         });
-//     } catch (err) {
-//         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
-//     }
-// });
+router.get('/sign-in', async (req, res, next) => {
+    try {
+        const usersRecord = await user.find();
+        res.status(statusCodes.CREATED).json({
+            success: true,
+            data: usersRecord,
+        });
+    } catch (err) {
+        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
+    }
+});
 
 // router.get('/sign-in/:id', (req, res, next) => {
 //     try {

@@ -6,7 +6,7 @@
 /**
  * Module dependencies.
  */
-
+const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
 const app = require('../app/app');
@@ -102,3 +102,17 @@ function onListening() {
         typeof addr === 'string' ? `pipe ${addr}` : `port ${addr.port}`;
     debug(`Listening on ${bind}`);
 }
+
+process
+
+    // Handle normal exits
+    .on('exit', (code) => {
+        nodemon.emit('quit');
+        process.exit(code);
+    })
+
+    // Handle CTRL+C
+    .on('SIGINT', () => {
+        nodemon.emit('quit');
+        process.exit(0);
+    });

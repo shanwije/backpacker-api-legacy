@@ -10,11 +10,11 @@ router.post('/sign-up', async (req, res, next) => {
     try {
         const userRecord = await user.create(req.body);
         const token = userRecord.getSignedJWTToken();
-
         res.status(statusCodes.CREATED).json({
             success: true,
             token,
         });
+        userRecord.sendVerificationEmail();
     } catch (err) {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }

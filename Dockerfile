@@ -1,4 +1,4 @@
-FROM node:12
+FROM node
 
 # set ownership on them to our node user
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app

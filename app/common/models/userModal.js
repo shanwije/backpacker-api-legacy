@@ -2,7 +2,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PUBLISHER, USER } = require('./../../misc/const/userRoles');
+const mailService = require('../../misc/mailService');
+const emailTemplates = require('../../misc/emailTemplates');
+const userRoles = require('../../misc/const/userRoles');
 
 const userSchema = new mongoose.Schema(
     {
@@ -26,17 +28,30 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: [PUBLISHER, USER],
-            default: USER,
+            enum: [userRoles.PUBLISHER, userRoles.USER],
+            default: userRoles.USER,
         },
         resetPasswordToken: String,
         resetPasswordExpired: Date,
+        emailVerification: {
+            token: String,
+            status: { type: Boolean, default: false },
+        },
     },
     { timestamps: true },
 );
+userSchema.methods.sendVerificationEmail = async function () {
+    // todo : implement token generation function
+    const token = '1111';
+    // todo : persist token in db's correct record
+    return mailService.sendEmail(
+        this.email,
+        emailTemplates.getVerificationEmailBody(this.email, token),
+    );
+};
 
 userSchema.pre('save', function emailToLowerCase(next) {
-    this.email = this['email'].toLowerCase();
+    this.email = this.email.toLowerCase();
     next();
 });
 

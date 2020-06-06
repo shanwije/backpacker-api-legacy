@@ -1,0 +1,6 @@
+[
+  {
+    "name": "backpacker-api",
+    "imageUri": "11111EXAMPLE.dkr.ecr.us-west-2.amazonaws.com/backpacker-api:latest"
+  }
+]

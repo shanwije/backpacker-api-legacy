@@ -5,9 +5,15 @@ const protect = require('./common/middleware/auth/authenticationMiddleware');
 const authorize = require('./common/middleware/auth/authorizationMiddleware');
 const usersRouter = require('./common/routes/users');
 const signInRouter = require('./common/routes/signIn');
-const { PUBLISHER, USER } = require('./misc/const/userRoles');
+const userRoles = require('./misc/const/userRoles');
 
 router.use('/auth', signInRouter);
-router.use('/users', protect, authorize(PUBLISHER, USER), usersRouter);
+
+router.use(
+    '/users',
+    protect,
+    authorize(userRoles.PUBLISHER, userRoles.USER),
+    usersRouter,
+);
 
 module.exports = router;

@@ -49,15 +49,6 @@ userSchema.pre('save', async function emailToLowerCase(next) {
     next();
 });
 
-// encrypt password
-userSchema.pre('save', async function encryptPassword(next) {
-    if (this.password) {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-    }
-    next();
-});
-
 // sign JWT and return
 userSchema.methods.getSignedJWTToken = function () {
     const { JWT_EXPIRE, JWT_SECRET } = process.env;

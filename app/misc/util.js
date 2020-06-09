@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+
 const getRandomToken = (length) => {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -9,6 +11,12 @@ const getRandomToken = (length) => {
     }
     return result;
 };
+
+const getEncryptedPassword = async function (password) {
+    const salt = await bcrypt.genSalt(10);
+    return bcrypt.hash(password, salt);
+};
 module.exports = {
     getRandomToken,
+    getEncryptedPassword,
 };

@@ -28,7 +28,7 @@ router.post('/sign-in', async (req, res, next) => {
                         {},
                         statusCodes.FORBIDDEN,
                         'Invalid credentials',
-                        '400001',
+                        '400002',
                     ),
                 );
             } else {
@@ -45,7 +45,7 @@ router.post('/sign-in', async (req, res, next) => {
                 {},
                 statusCodes.FORBIDDEN,
                 'email or password can not be empty',
-                '400002',
+                '400003',
             ),
         );
     }
@@ -173,7 +173,7 @@ router.post('/sign-up/password', async (req, res, next) => {
                 await user.findOneAndUpdate(
                     { email },
                     {
-                        password: password.trim(),
+                        password: await utils.getEncryptedPassword(password),
                         active: true,
                         emailTokenExpiresIn: new Date(Date.now() - 86400000),
                     },

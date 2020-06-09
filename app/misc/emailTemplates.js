@@ -1,7 +1,7 @@
-const getVerificationEmailBody = function (username, token) {
+const getVerificationEmailBody = function (email, token) {
     return {
         subject: 'Backpacker Verification',
-        text: `hello ${username}. here's your verification token : \n, ${token}`,
+        text: `Hi, Here's your verification token : \n BP-${token}`,
     };
 };
 exports.getVerificationEmailBody = getVerificationEmailBody;

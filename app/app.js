@@ -14,6 +14,7 @@ const colors = require('colors');
 const aggregatedRouter = require('./aggregatedRouter');
 const errorHandler = require('./common/middleware/errorHandlerMiddleware');
 const connectDB = require('./common/db/dbSetup');
+// const connectRedis = require('./common/cache/redisSetup');
 
 // load config
 const configPath = path.resolve('config', 'config.env');
@@ -40,6 +41,11 @@ if (process.env.NODE_ENV === 'development') {
  * connect with mongoDB
  */
 connectDB();
+
+/**
+ * connect with redis
+ */
+// connectRedis();
 
 /**
  * limit tps count

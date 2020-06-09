@@ -18,11 +18,12 @@ const userSchema = new mongoose.Schema(
             maxLength: [50, 'email max length cannot exceed 50 chars '],
             trim: true,
             unique: [true, 'this email is already exists'],
+            index: true,
         },
         password: {
             type: String,
             select: false,
-            required: [true, 'password is required'],
+            required: [false, 'password is required'],
             minlength: 6,
             maxlength: 20,
         },
@@ -33,32 +34,27 @@ const userSchema = new mongoose.Schema(
         },
         resetPasswordToken: String,
         resetPasswordExpired: Date,
-        emailVerification: {
-            token: String,
-            status: { type: Boolean, default: false },
+        active: { type: Boolean, default: false },
+        emailVerificationToken: { type: String, required: true },
+        emailTokenExpiresIn: {
+            type: Date,
+            default: () => new Date(+new Date() + 24 * 60 * 60 * 1000), // 24 hours valid
         },
     },
     { timestamps: true },
 );
-userSchema.methods.sendVerificationEmail = async function () {
-    // todo : implement token generation function
-    const token = '1111';
-    // todo : persist token in db's correct record
-    return mailService.sendEmail(
-        this.email,
-        emailTemplates.getVerificationEmailBody(this.email, token),
-    );
-};
 
-userSchema.pre('save', function emailToLowerCase(next) {
+userSchema.pre('save', async function emailToLowerCase(next) {
     this.email = this.email.toLowerCase();
     next();
 });
 
 // encrypt password
 userSchema.pre('save', async function encryptPassword(next) {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    if (this.password) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
     next();
 });
 
@@ -73,6 +69,15 @@ userSchema.methods.getSignedJWTToken = function () {
 // match user entered password to password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return bcrypt.compare(enteredPassword, this.password);
+};
+
+// send email withemail verification token
+userSchema.methods.sendVerificationEmail = async function () {
+    const emailBody = await emailTemplates.getVerificationEmailBody(
+        this.email,
+        this.emailVerificationToken,
+    );
+    return mailService.sendEmail(this.email, emailBody);
 };
 
 module.exports = mongoose.model('user', userSchema);

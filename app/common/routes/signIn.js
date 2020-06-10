@@ -4,6 +4,7 @@ const user = require('../models/userModal');
 const ErrorResponse = require('../../misc/ErrorResponse');
 const statusCodes = require('../../misc/const/statusCodes');
 const utils = require('../../misc/util');
+const customErrorCodes = require('../../misc/const/customErrorCodes');
 
 const router = express.Router();
 
@@ -16,8 +17,8 @@ router.post('/sign-in', async (req, res, next) => {
                 new ErrorResponse(
                     {},
                     statusCodes.FORBIDDEN,
-                    'Invalid credentials',
-                    '400001',
+                    'Invalid email or password',
+                    customErrorCodes.USER_RECORD_NOT_AVAILABLE,
                 ),
             );
         } else {
@@ -28,7 +29,7 @@ router.post('/sign-in', async (req, res, next) => {
                         {},
                         statusCodes.FORBIDDEN,
                         'Invalid credentials',
-                        '400002',
+                        customErrorCodes.INVALID_CREDENTIALS,
                     ),
                 );
             } else {
@@ -44,45 +45,10 @@ router.post('/sign-in', async (req, res, next) => {
             new ErrorResponse(
                 {},
                 statusCodes.FORBIDDEN,
-                'email or password can not be empty',
-                '400003',
+                'Email or password can not be empty',
+                customErrorCodes.EMPTY,
             ),
         );
-    }
-});
-
-// router.get('/sign-in', async (req, res, next) => {
-//     try {
-//         const usersRecord = await user.find();
-//         res.status(statusCodes.CREATED).json({
-//             success: true,
-//             data: usersRecord,
-//         });
-//     } catch (err) {
-//         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
-//     }
-// });
-
-router.post('/sign-up', async (req, res, next) => {
-    if (_.get(req, 'body.password') || _.get(req, 'body.email')) {
-        next(
-            new ErrorResponse(
-                '',
-                statusCodes.BAD_REQUEST,
-                'Please provide a proper email and password',
-            ),
-        );
-    } else {
-        try {
-            const userRecord = await user.create(req.body);
-            const token = userRecord.getSignedJWTToken();
-            res.status(statusCodes.CREATED).json({
-                success: true,
-                token,
-            });
-        } catch (err) {
-            next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
-        }
     }
 });
 
@@ -127,7 +93,7 @@ router.post('/sign-up/email', async (req, res, next) => {
                     '',
                     statusCodes.BAD_REQUEST,
                     'This account is already in active state',
-                    '11000',
+                    customErrorCodes.ALREADY_ACTIVE,
                 ),
             );
         }
@@ -135,6 +101,7 @@ router.post('/sign-up/email', async (req, res, next) => {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });
+
 // required emailVerificationToken, password, email
 router.post('/sign-up/password', async (req, res, next) => {
     try {
@@ -151,7 +118,7 @@ router.post('/sign-up/password', async (req, res, next) => {
                     {},
                     statusCodes.FORBIDDEN,
                     'Invalid credentials',
-                    '400001',
+                    customErrorCodes.USER_RECORD_NOT_AVAILABLE,
                 ),
             );
         } else if (
@@ -162,8 +129,8 @@ router.post('/sign-up/password', async (req, res, next) => {
                 new ErrorResponse(
                     {},
                     statusCodes.BAD_REQUEST,
-                    `${email} already in active state`,
-                    '325555',
+                    'This account is already in active state',
+                    customErrorCodes.ALREADY_ACTIVE,
                 ),
             );
         } else {
@@ -179,7 +146,7 @@ router.post('/sign-up/password', async (req, res, next) => {
                         {},
                         statusCodes.FORBIDDEN,
                         'Invalid credentials',
-                        '400001',
+                        customErrorCodes.INVALID_TOKEN,
                     ),
                 );
             } else if (isExpired) {
@@ -187,8 +154,8 @@ router.post('/sign-up/password', async (req, res, next) => {
                     new ErrorResponse(
                         {},
                         statusCodes.BAD_REQUEST,
-                        `${email} ,token has expired`,
-                        '325555',
+                        `Your token has expired, Please request for a new token`,
+                        customErrorCodes.EXPIRED_TOKEN,
                     ),
                 );
             } else {
@@ -209,7 +176,7 @@ router.post('/sign-up/password', async (req, res, next) => {
         }
     } catch (err) {
         console.log(err);
-        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
+        next(new ErrorResponse(err, statusCodes.INTERNAL_SERVER_ERROR));
     }
 });
 

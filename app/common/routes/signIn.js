@@ -88,39 +88,58 @@ router.post('/sign-up', async (req, res, next) => {
 
 router.post('/sign-up/email', async (req, res, next) => {
     try {
-        _.set(
-            req,
-            'body.emailVerificationToken',
-            await utils.getRandomToken(6),
-        );
-        const userRecord = await user.create(req.body);
-        res.status(statusCodes.CREATED).json({
-            success: true,
-        });
-        await userRecord.sendVerificationEmail();
-    } catch (err) {
-        console.log(JSON.stringify(err, null, '\t'));
-        if (err.code === 11000) {
+        const { email } = req.body;
+        const { forgotPassword } = req.query;
+
+        const userRecord = await user.findOne({ email }).select('active');
+
+        // new / fresh user
+        if (!userRecord) {
+            _.set(
+                req,
+                'body.emailVerificationToken',
+                await utils.getRandomToken(6),
+            );
+            const successRecord = await user.create(req.body);
+            res.status(statusCodes.CREATED).json({
+                success: true,
+            });
+            await successRecord.sendVerificationEmail();
+        } else if (
+            !userRecord.active ||
+            forgotPassword.trim().toLowerCase() === 'true'
+        ) {
+            // user has a record but email not validated or for forgot password users
+            const successRecord = await user.findOneAndUpdate(
+                { email },
+                {
+                    emailVerificationToken: await utils.getRandomToken(6),
+                    emailTokenExpiresIn: new Date(Date.now() + 86400000),
+                },
+            );
+            res.status(statusCodes.CREATED).json({
+                success: true,
+            });
+            await successRecord.sendVerificationEmail();
+        } else {
             next(
                 new ErrorResponse(
                     '',
                     statusCodes.BAD_REQUEST,
-                    'Email already in db',
-                    err.code,
+                    'This account is already in active state',
+                    '11000',
                 ),
             );
         }
+    } catch (err) {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });
 // required emailVerificationToken, password, email
 router.post('/sign-up/password', async (req, res, next) => {
     try {
-        const { email, emailVerificationToken, password } = _.get(
-            req,
-            'body',
-            {},
-        );
+        const { email, emailVerificationToken, password } = req.body;
+        const { forgotPassword } = req.query;
 
         const userRecord = await user
             .findOne({ email })
@@ -135,7 +154,10 @@ router.post('/sign-up/password', async (req, res, next) => {
                     '400001',
                 ),
             );
-        } else if (userRecord.active) {
+        } else if (
+            forgotPassword.trim().toLowerCase() === 'false' &&
+            userRecord.active
+        ) {
             next(
                 new ErrorResponse(
                     {},
@@ -164,8 +186,8 @@ router.post('/sign-up/password', async (req, res, next) => {
                 next(
                     new ErrorResponse(
                         {},
-                        statusCodes.BAD_REQUEST`${email}, 
-                    'token has expired`,
+                        statusCodes.BAD_REQUEST,
+                        `${email} ,token has expired`,
                         '325555',
                     ),
                 );
@@ -186,6 +208,7 @@ router.post('/sign-up/password', async (req, res, next) => {
             }
         }
     } catch (err) {
+        console.log(err);
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });

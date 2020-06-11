@@ -5,4 +5,5 @@ module.exports = {
     EMPTY: '40003',
     ALREADY_ACTIVE: '40004',
     EXPIRED_TOKEN: '40005',
+    NOT_ACTIVE: '40006',
 };

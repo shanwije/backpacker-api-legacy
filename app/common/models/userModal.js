@@ -50,11 +50,19 @@ userSchema.pre('save', async function emailToLowerCase(next) {
 });
 
 // sign JWT and return
-userSchema.methods.getSignedJWTToken = function () {
+userSchema.methods.getSignedJWTToken = function (payload = {}) {
     const { JWT_EXPIRE, JWT_SECRET } = process.env;
-    return jwt.sign({ id: this.id }, JWT_SECRET, {
-        expiresIn: JWT_EXPIRE,
-    });
+    return jwt.sign(
+        {
+            id: this.id,
+            email: this.email,
+            ...payload,
+        },
+        JWT_SECRET,
+        {
+            expiresIn: JWT_EXPIRE,
+        },
+    );
 };
 
 // match user entered password to password in database

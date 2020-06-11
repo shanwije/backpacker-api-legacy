@@ -1,5 +1,6 @@
 const express = require('express');
 const _ = require('lodash');
+const jwt = require('jsonwebtoken');
 const user = require('../models/userModal');
 const ErrorResponse = require('../../misc/ErrorResponse');
 const statusCodes = require('../../misc/const/statusCodes');
@@ -55,7 +56,7 @@ router.post('/sign-in', async (req, res, next) => {
 router.post('/sign-up/email', async (req, res, next) => {
     try {
         const { email } = req.body;
-        const { forgotPassword } = req.query;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
 
         const userRecord = await user.findOne({ email }).select('active');
 
@@ -64,13 +65,13 @@ router.post('/sign-up/email', async (req, res, next) => {
             _.set(
                 req,
                 'body.emailVerificationToken',
-                await utils.getRandomToken(6),
+                await utils.getRandomToken(5),
             );
-            const successRecord = await user.create(req.body);
+            await user.create(req.body);
             res.status(statusCodes.CREATED).json({
                 success: true,
             });
-            await successRecord.sendVerificationEmail();
+            // await successRecord.sendVerificationEmail();
         } else if (
             !userRecord.active ||
             forgotPassword.trim().toLowerCase() === 'true'
@@ -79,14 +80,14 @@ router.post('/sign-up/email', async (req, res, next) => {
             const successRecord = await user.findOneAndUpdate(
                 { email },
                 {
-                    emailVerificationToken: await utils.getRandomToken(6),
+                    emailVerificationToken: await utils.getRandomToken(5),
                     emailTokenExpiresIn: new Date(Date.now() + 86400000),
                 },
             );
             res.status(statusCodes.CREATED).json({
                 success: true,
             });
-            await successRecord.sendVerificationEmail();
+            // await successRecord.sendVerificationEmail();
         } else {
             next(
                 new ErrorResponse(
@@ -102,11 +103,14 @@ router.post('/sign-up/email', async (req, res, next) => {
     }
 });
 
-// required emailVerificationToken, password, email
-router.post('/sign-up/password', async (req, res, next) => {
+// required token, email
+router.post('/sign-up/email-auth-token', async (req, res, next) => {
+    // varify token
+    // set email varified state
+    // send jwt
     try {
-        const { email, emailVerificationToken, password } = req.body;
-        const { forgotPassword } = req.query;
+        const { email, token } = req.body;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
 
         const userRecord = await user
             .findOne({ email })
@@ -137,7 +141,7 @@ router.post('/sign-up/password', async (req, res, next) => {
             const isExpired =
                 new Date() > new Date(userRecord.emailTokenExpiresIn);
             const isMatch = _.isEqual(
-                emailVerificationToken.trim().toUpperCase(),
+                token.trim().toUpperCase(),
                 userRecord.emailVerificationToken,
             );
             if (!isMatch) {
@@ -159,20 +163,98 @@ router.post('/sign-up/password', async (req, res, next) => {
                     ),
                 );
             } else {
-                await user.findOneAndUpdate(
-                    { email },
-                    {
-                        password: await utils.getEncryptedPassword(password),
-                        active: true,
-                        emailTokenExpiresIn: new Date(Date.now() - 86400000),
-                    },
-                );
-                const token = await userRecord.getSignedJWTToken();
+                const JWTToken = await userRecord.getSignedJWTToken({
+                    emailVerificationToken: userRecord.emailVerificationToken,
+                });
                 res.status(statusCodes.OK).json({
                     success: true,
-                    token,
+                    token: JWTToken,
                 });
             }
+        }
+    } catch (err) {
+        console.log(err);
+        next(new ErrorResponse(err, statusCodes.INTERNAL_SERVER_ERROR));
+    }
+});
+
+// required token, password, email
+router.post('/sign-up/password', async (req, res, next) => {
+    try {
+        const { password } = req.body;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
+        const bearerHeader = req.headers.authorization;
+
+        if (bearerHeader) {
+            const bearerToken = bearerHeader.split(' ')[1];
+            const { JWT_SECRET } = process.env;
+            const decoded = jwt.verify(bearerToken, JWT_SECRET);
+
+            const userRecord = await user.findById(_.get(decoded, 'id', ''));
+
+            if (!userRecord) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.FORBIDDEN,
+                        'Invalid credentials',
+                        customErrorCodes.USER_RECORD_NOT_AVAILABLE,
+                    ),
+                );
+            } else if (
+                userRecord.active &&
+                forgotPassword.trim().toLowerCase() === 'false'
+            ) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.FORBIDDEN,
+                        'User already in active status',
+                        customErrorCodes.ALREADY_ACTIVE,
+                    ),
+                );
+            } else {
+                const isExpired =
+                    new Date() > new Date(userRecord.emailTokenExpiresIn);
+                if (isExpired) {
+                    next(
+                        new ErrorResponse(
+                            {},
+                            statusCodes.BAD_REQUEST,
+                            `Your token has expired, Please request for password with a new verified token`,
+                            customErrorCodes.EXPIRED_TOKEN,
+                        ),
+                    );
+                } else {
+                    console.log(userRecord);
+                    await user.findByIdAndUpdate(
+                        // eslint-disable-next-line no-underscore-dangle
+                        { _id: _.get(userRecord, 'id', 0) },
+                        {
+                            password: await utils.getEncryptedPassword(
+                                password,
+                            ),
+                            active: true,
+                            emailTokenExpiresIn: new Date(
+                                Date.now() - 86400000,
+                            ),
+                        },
+                    );
+                    const token = await userRecord.getSignedJWTToken();
+                    res.status(statusCodes.OK).json({
+                        success: true,
+                        token,
+                    });
+                }
+            }
+        } else {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.FORBIDDEN,
+                    customErrorCodes.INVALID_TOKEN,
+                ),
+            );
         }
     } catch (err) {
         console.log(err);

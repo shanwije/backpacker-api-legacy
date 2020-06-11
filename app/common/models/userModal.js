@@ -76,7 +76,11 @@ userSchema.methods.sendVerificationEmail = async function () {
         this.email,
         this.emailVerificationToken,
     );
-    return mailService.sendEmail(this.email, emailBody);
+    if (process.env.NODE_ENV === 'production') {
+        return mailService.sendEmail(this.email, emailBody);
+    }
+    console.log('only in production email service is active');
+    return 0;
 };
 
 module.exports = mongoose.model('user', userSchema);

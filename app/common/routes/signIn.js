@@ -67,11 +67,11 @@ router.post('/sign-up/email', async (req, res, next) => {
                 'body.emailVerificationToken',
                 await utils.getRandomToken(5),
             );
-            await user.create(req.body);
+            const successRecord = await user.create(req.body);
             res.status(statusCodes.CREATED).json({
                 success: true,
             });
-            // await successRecord.sendVerificationEmail();
+            await successRecord.sendVerificationEmail();
         } else if (
             !userRecord.active ||
             forgotPassword.trim().toLowerCase() === 'true'
@@ -87,7 +87,7 @@ router.post('/sign-up/email', async (req, res, next) => {
             res.status(statusCodes.CREATED).json({
                 success: true,
             });
-            // await successRecord.sendVerificationEmail();
+            await successRecord.sendVerificationEmail();
         } else {
             next(
                 new ErrorResponse(
@@ -105,9 +105,6 @@ router.post('/sign-up/email', async (req, res, next) => {
 
 // required token, email
 router.post('/sign-up/email-auth-token', async (req, res, next) => {
-    // varify token
-    // set email varified state
-    // send jwt
     try {
         const { email, token } = req.body;
         const forgotPassword = _.get(req, 'query.forgotPassword', 'false');

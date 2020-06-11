@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mailService = require('../../misc/mailService');
 const emailTemplates = require('../../misc/emailTemplates');
-const userRoles = require('../../misc/const/userRoles');
+const { userRoles, activeStatus } = require('../../misc/const/loginConst');
 
 const userSchema = new mongoose.Schema(
     {
@@ -34,7 +34,15 @@ const userSchema = new mongoose.Schema(
         },
         resetPasswordToken: String,
         resetPasswordExpired: Date,
-        active: { type: Boolean, default: false },
+        active: {
+            type: String,
+            enum: [
+                activeStatus.ACTIVE,
+                activeStatus.NOT_ACTIVE,
+                activeStatus.BLOCKED,
+            ],
+            default: activeStatus.NOT_ACTIVE,
+        },
         emailVerificationToken: { type: String, required: true },
         emailTokenExpiresIn: {
             type: Date,

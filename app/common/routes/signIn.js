@@ -5,6 +5,7 @@ const user = require('../models/userModal');
 const ErrorResponse = require('../../misc/ErrorResponse');
 const statusCodes = require('../../misc/const/statusCodes');
 const utils = require('../../misc/util');
+const { activeStatus } = require('../../misc/const/loginConst');
 const customErrorCodes = require('../../misc/const/customErrorCodes');
 
 const router = express.Router();
@@ -20,6 +21,15 @@ router.post('/sign-in', async (req, res, next) => {
                     statusCodes.FORBIDDEN,
                     'Invalid email or password',
                     customErrorCodes.USER_RECORD_NOT_AVAILABLE,
+                ),
+            );
+        } else if (userRecord.active !== activeStatus.ACTIVE) {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.FORBIDDEN,
+                    'Your account is not active',
+                    customErrorCodes.NOT_ACTIVE,
                 ),
             );
         } else {
@@ -73,7 +83,7 @@ router.post('/sign-up/email', async (req, res, next) => {
             });
             await successRecord.sendVerificationEmail();
         } else if (
-            !userRecord.active ||
+            userRecord.active === activeStatus.NOT_ACTIVE ||
             forgotPassword.trim().toLowerCase() === 'true'
         ) {
             // user has a record but email not validated or for forgot password users
@@ -124,7 +134,7 @@ router.post('/sign-up/email-auth-token', async (req, res, next) => {
             );
         } else if (
             forgotPassword.trim().toLowerCase() === 'false' &&
-            userRecord.active
+            userRecord.active === activeStatus.ACTIVE
         ) {
             next(
                 new ErrorResponse(
@@ -199,7 +209,7 @@ router.post('/sign-up/password', async (req, res, next) => {
                     ),
                 );
             } else if (
-                userRecord.active &&
+                userRecord.active === activeStatus.ACTIVE &&
                 forgotPassword.trim().toLowerCase() === 'false'
             ) {
                 next(
@@ -231,7 +241,7 @@ router.post('/sign-up/password', async (req, res, next) => {
                             password: await utils.getEncryptedPassword(
                                 password,
                             ),
-                            active: true,
+                            active: activeStatus.ACTIVE,
                             emailTokenExpiresIn: new Date(
                                 Date.now() - 86400000,
                             ),

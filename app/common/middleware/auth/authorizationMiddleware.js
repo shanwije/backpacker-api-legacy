@@ -4,6 +4,7 @@ const statusCodes = require('../../../misc/const/statusCodes');
 
 const authorize = (...roles) => {
     return (req, res, next) => {
+        console.log('roles', roles.red);
         if (!roles.includes(_.get(req, 'user.role', null))) {
             return next(
                 new ErrorResponse(

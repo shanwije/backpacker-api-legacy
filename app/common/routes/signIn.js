@@ -1,24 +1,14 @@
 const express = require('express');
 const _ = require('lodash');
+const jwt = require('jsonwebtoken');
 const user = require('../models/userModal');
 const ErrorResponse = require('../../misc/ErrorResponse');
 const statusCodes = require('../../misc/const/statusCodes');
+const utils = require('../../misc/util');
+const { activeStatus } = require('../../misc/const/loginConst');
+const customErrorCodes = require('../../misc/const/customErrorCodes');
 
 const router = express.Router();
-
-router.post('/sign-up', async (req, res, next) => {
-    try {
-        const userRecord = await user.create(req.body);
-        const token = userRecord.getSignedJWTToken();
-
-        res.status(statusCodes.CREATED).json({
-            success: true,
-            token,
-        });
-    } catch (err) {
-        next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
-    }
-});
 
 router.post('/sign-in', async (req, res, next) => {
     const { email, password } = _.get(req, 'body', {});
@@ -29,8 +19,17 @@ router.post('/sign-in', async (req, res, next) => {
                 new ErrorResponse(
                     {},
                     statusCodes.FORBIDDEN,
-                    'Invalid credentials',
-                    '400001',
+                    'Invalid email or password',
+                    customErrorCodes.USER_RECORD_NOT_AVAILABLE,
+                ),
+            );
+        } else if (userRecord.active !== activeStatus.ACTIVE) {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.FORBIDDEN,
+                    'Your account is not active',
+                    customErrorCodes.NOT_ACTIVE,
                 ),
             );
         } else {
@@ -41,7 +40,7 @@ router.post('/sign-in', async (req, res, next) => {
                         {},
                         statusCodes.FORBIDDEN,
                         'Invalid credentials',
-                        '400001',
+                        customErrorCodes.INVALID_CREDENTIALS,
                     ),
                 );
             } else {
@@ -57,22 +56,217 @@ router.post('/sign-in', async (req, res, next) => {
             new ErrorResponse(
                 {},
                 statusCodes.FORBIDDEN,
-                'email or password can not be empty',
-                '400002',
+                'Email or password can not be empty',
+                customErrorCodes.EMPTY,
             ),
         );
     }
 });
 
-router.get('/sign-in', async (req, res, next) => {
+router.post('/sign-up/email', async (req, res, next) => {
     try {
-        const usersRecord = await user.find();
-        res.status(statusCodes.CREATED).json({
-            success: true,
-            data: usersRecord,
-        });
+        const { email } = req.body;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
+
+        const userRecord = await user.findOne({ email }).select('active');
+
+        // new / fresh user
+        if (!userRecord) {
+            _.set(
+                req,
+                'body.emailVerificationToken',
+                await utils.getRandomToken(5),
+            );
+            const successRecord = await user.create(req.body);
+            res.status(statusCodes.CREATED).json({
+                success: true,
+            });
+            await successRecord.sendVerificationEmail();
+        } else if (
+            userRecord.active === activeStatus.NOT_ACTIVE ||
+            forgotPassword.trim().toLowerCase() === 'true'
+        ) {
+            // user has a record but email not validated or for forgot password users
+            const successRecord = await user.findOneAndUpdate(
+                { email },
+                {
+                    emailVerificationToken: await utils.getRandomToken(5),
+                    emailTokenExpiresIn: new Date(Date.now() + 86400000),
+                },
+            );
+            res.status(statusCodes.CREATED).json({
+                success: true,
+            });
+            await successRecord.sendVerificationEmail();
+        } else {
+            next(
+                new ErrorResponse(
+                    '',
+                    statusCodes.BAD_REQUEST,
+                    'This account is already in active state',
+                    customErrorCodes.ALREADY_ACTIVE,
+                ),
+            );
+        }
     } catch (err) {
         next(new ErrorResponse(err, statusCodes.BAD_REQUEST));
     }
 });
+
+// required token, email
+router.post('/sign-up/email-auth-token', async (req, res, next) => {
+    try {
+        const { email, token } = req.body;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
+
+        const userRecord = await user
+            .findOne({ email })
+            .select('emailVerificationToken active emailTokenExpiresIn');
+
+        if (!userRecord) {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.FORBIDDEN,
+                    'Invalid credentials',
+                    customErrorCodes.USER_RECORD_NOT_AVAILABLE,
+                ),
+            );
+        } else if (
+            forgotPassword.trim().toLowerCase() === 'false' &&
+            userRecord.active === activeStatus.ACTIVE
+        ) {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.BAD_REQUEST,
+                    'This account is already in active state',
+                    customErrorCodes.ALREADY_ACTIVE,
+                ),
+            );
+        } else {
+            const isExpired =
+                new Date() > new Date(userRecord.emailTokenExpiresIn);
+            const isMatch = _.isEqual(
+                token.trim().toUpperCase(),
+                userRecord.emailVerificationToken,
+            );
+            if (!isMatch) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.FORBIDDEN,
+                        'Invalid credentials',
+                        customErrorCodes.INVALID_TOKEN,
+                    ),
+                );
+            } else if (isExpired) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.BAD_REQUEST,
+                        `Your token has expired, Please request for a new token`,
+                        customErrorCodes.EXPIRED_TOKEN,
+                    ),
+                );
+            } else {
+                const JWTToken = await userRecord.getSignedJWTToken({
+                    emailVerificationToken: userRecord.emailVerificationToken,
+                });
+                res.status(statusCodes.OK).json({
+                    success: true,
+                    token: JWTToken,
+                });
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        next(new ErrorResponse(err, statusCodes.INTERNAL_SERVER_ERROR));
+    }
+});
+
+// required token, password, email
+router.post('/sign-up/password', async (req, res, next) => {
+    try {
+        const { password } = req.body;
+        const forgotPassword = _.get(req, 'query.forgotPassword', 'false');
+        const bearerHeader = req.headers.authorization;
+
+        if (bearerHeader) {
+            const bearerToken = bearerHeader.split(' ')[1];
+            const { JWT_SECRET } = process.env;
+            const decoded = jwt.verify(bearerToken, JWT_SECRET);
+
+            const userRecord = await user.findById(_.get(decoded, 'id', ''));
+
+            if (!userRecord) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.FORBIDDEN,
+                        'Invalid credentials',
+                        customErrorCodes.USER_RECORD_NOT_AVAILABLE,
+                    ),
+                );
+            } else if (
+                userRecord.active === activeStatus.ACTIVE &&
+                forgotPassword.trim().toLowerCase() === 'false'
+            ) {
+                next(
+                    new ErrorResponse(
+                        {},
+                        statusCodes.FORBIDDEN,
+                        'User already in active status',
+                        customErrorCodes.ALREADY_ACTIVE,
+                    ),
+                );
+            } else {
+                const isExpired =
+                    new Date() > new Date(userRecord.emailTokenExpiresIn);
+                if (isExpired) {
+                    next(
+                        new ErrorResponse(
+                            {},
+                            statusCodes.BAD_REQUEST,
+                            `Your token has expired, Please request for password with a new verified token`,
+                            customErrorCodes.EXPIRED_TOKEN,
+                        ),
+                    );
+                } else {
+                    console.log(userRecord);
+                    await user.findByIdAndUpdate(
+                        // eslint-disable-next-line no-underscore-dangle
+                        { _id: _.get(userRecord, 'id', 0) },
+                        {
+                            password: await utils.getEncryptedPassword(
+                                password,
+                            ),
+                            active: activeStatus.ACTIVE,
+                            emailTokenExpiresIn: new Date(
+                                Date.now() - 86400000,
+                            ),
+                        },
+                    );
+                    const token = await userRecord.getSignedJWTToken();
+                    res.status(statusCodes.OK).json({
+                        success: true,
+                        token,
+                    });
+                }
+            }
+        } else {
+            next(
+                new ErrorResponse(
+                    {},
+                    statusCodes.FORBIDDEN,
+                    customErrorCodes.INVALID_TOKEN,
+                ),
+            );
+        }
+    } catch (err) {
+        console.log(err);
+        next(new ErrorResponse(err, statusCodes.INTERNAL_SERVER_ERROR));
+    }
+});
+
 module.exports = router;

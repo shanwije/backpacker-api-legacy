@@ -9,8 +9,8 @@
 const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
+const socketIO = require('socket.io');
 const app = require('../app/app');
-
 /**
  * Get port from environment and store in Express.
  */
@@ -24,6 +24,13 @@ app.set('port', port);
 
 const server = http.createServer(app);
 
+const io = socketIO(server);
+io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('message', (msg) => {
+        console.log(msg);
+    });
+});
 /**
  * Listen on provided port, on all network interfaces.
  */

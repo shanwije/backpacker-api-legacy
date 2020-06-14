@@ -6,6 +6,8 @@
 /**
  * Module dependencies.
  */
+// import { v4 as uuidv4 } from 'uuid';
+const { v4: uuidv4 } = require('uuid');
 const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
@@ -25,10 +27,33 @@ app.set('port', port);
 const server = http.createServer(app);
 
 const io = socketIO(server);
+
+let currentUserId = 2;
+const userIds = {};
+
+function createMessage(userId, messageText) {
+    return {
+        _id: uuidv4(),
+        text: messageText,
+        createdAt: new Date(),
+        user: {
+            _id: userId,
+            name: 'Test User',
+            avatar: 'https://placeimg.com/140/140/any',
+        },
+    };
+}
+
 io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.on('message', (msg) => {
-        console.log(msg);
+    console.log('a user connected!');
+    console.log(socket.id);
+    const userId = uuidv4();
+    userIds[socket.id] = userId;
+    socket.on('message', (messageText) => {
+        const userId = userIds[socket.id];
+        const message = createMessage(userId, messageText);
+        console.log(message);
+        socket.broadcast.emit('message', message);
     });
 });
 /**

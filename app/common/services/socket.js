@@ -18,16 +18,15 @@ function createMessage(userId, userName, messageText) {
 const handleSocket = (io) => {
     io.on('connection', (socket) => {
         console.log('a user connected!');
-        console.log(socket.id);
-        userIds[socket.id] = uuidv4();
         socket.on('message', async ({ messageText, token }) => {
+            console.log('there a new msg', messageText);
             try {
                 const user = await jwt.verify(token, process.env.JWT_SECRET);
                 if (user && user.id) {
                     console.log('messageText', messageText);
-                    const userId = userIds[user.id];
+                    userIds[socket.id] = user.id;
                     const message = createMessage(
-                        user.id,
+                        userIds[socket.id],
                         user.email,
                         messageText,
                     );

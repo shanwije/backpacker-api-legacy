@@ -1,7 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
+const _ = require('lodash');
 
-const userIds = {};
+const connectedUsers = {};
 
 function createMessage(userId, userName, messageText) {
     return {
@@ -17,31 +18,32 @@ function createMessage(userId, userName, messageText) {
 }
 const handleSocket = (io) => {
     io.on('connection', (socket) => {
-        console.log('a user connected!');
-        console.log(socket.id);
-        userIds[socket.id] = uuidv4();
-        socket.on('message', async ({ messageText, token }) => {
-            try {
-                const user = await jwt.verify(token, process.env.JWT_SECRET);
-                if (user && user.id) {
-                    console.log('messageText', messageText);
-                    const userId = userIds[user.id];
-                    const message = createMessage(
-                        user.id,
-                        user.email,
-                        messageText,
-                    );
-                    console.log(message);
-                    socket.broadcast.emit('message', message);
-                } else {
-                    console.log('error, jwt user not found');
-                    socket.emit('error', 'no account found');
-                }
-            } catch (err) {
-                console.log(err);
-                socket.emit('error', err.message);
-            }
+        const { user } = socket;
+        console.log('new user connected, email :', user.email);
+
+        // Object.keys(connectedUsers)
+        //     .filter((k, i) => connectedUsers[k] === user.id)
+        //     .forEach((k) => {
+        //         connectedUsers[k].disconnect();
+        //     });
+        connectedUsers[socket.id] = user.id;
+        socket.on('disconnect', (disconnectedSocket) => {
+            console.log('disconnected', disconnectedSocket);
+            delete connectedUsers[socket];
+            io.emit('connectedUsers', connectedUsers);
         });
+
+        socket.once('message', async (messageText) => {
+            console.log('new msg');
+            socket.broadcast.emit('connectedUsers', connectedUsers);
+            const message = await createMessage(
+                user.id,
+                user.email,
+                messageText,
+            );
+            await socket.broadcast.emit('message', message);
+        });
+        // }
     });
 };
 

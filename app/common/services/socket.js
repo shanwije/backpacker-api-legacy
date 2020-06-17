@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const jwt = require('jsonwebtoken');
 
 const connectedUsers = {};
 
@@ -16,35 +16,42 @@ function createMessage(userId, userName, messageText) {
         },
     };
 }
-const handleSocket = (io) => {
-    io.on('connection', (socket) => {
-        const { user } = socket;
-        console.log('new user connected, email :', user.email);
-
-        // Object.keys(connectedUsers)
-        //     .filter((k, i) => connectedUsers[k] === user.id)
-        //     .forEach((k) => {
-        //         connectedUsers[k].disconnect();
-        //     });
-        connectedUsers[socket.id] = user.id;
-        socket.on('disconnect', (disconnectedSocket) => {
-            console.log('disconnected', disconnectedSocket);
-            delete connectedUsers[socket];
+const handleSocket = async (io) => {
+    try {
+        io.on('connection', async (socket) => {
+            console.log('new socket connected');
             io.emit('connectedUsers', connectedUsers);
-        });
 
-        socket.once('message', async (messageText) => {
-            console.log('new msg');
-            socket.broadcast.emit('connectedUsers', connectedUsers);
-            const message = await createMessage(
-                user.id,
-                user.email,
-                messageText,
-            );
-            await socket.broadcast.emit('message', message);
+            socket.on('disconnect', (reason) => {
+                console.log('disconnected', reason);
+                delete connectedUsers[socket];
+                io.emit('connectedUsers', connectedUsers);
+            });
+
+            socket.on('disconnectSocket', () => {
+                console.log('disconnecting socket');
+                delete connectedUsers[socket];
+                socket.disconnect();
+            });
+
+            socket.on('message', async (data) => {
+                const { jwtToken, payload } = data;
+                console.log('new new msg');
+                const user = await jwt.verify(jwtToken, process.env.JWT_SECRET);
+
+                connectedUsers[socket.id] = user.email;
+                socket.broadcast.emit('connectedUsers', connectedUsers);
+                const message = await createMessage(
+                    user.id,
+                    user.email,
+                    payload,
+                );
+                await socket.broadcast.emit('message', message);
+            });
         });
-        // }
-    });
+    } catch (err) {
+        console.log(err.message);
+    }
 };
 
 module.exports = handleSocket;

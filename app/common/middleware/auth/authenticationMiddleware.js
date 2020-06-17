@@ -62,16 +62,18 @@ async function httpJWTAuth(req, res, next) {
 
 async function socketJWTAuth(socket, next) {
     try {
-        const socketUser = await jwt.verify(
+        // eslint-disable-next-line no-param-reassign
+        socket.user = await jwt.verify(
             _.split(socket.handshake.headers.authorization, ' ')[1],
             process.env.JWT_SECRET,
         );
-        // eslint-disable-next-line no-param-reassign
-        socket.user = socketUser;
+        console.log(`socket user : ${socket.user.email}`);
         return next();
     } catch (err) {
-        console.log(err.message);
+        console.log('socket authentication error ', err.message);
+        socket.emit('error', 'unauthorized');
     }
+    return null;
 }
 
 module.exports = { httpJWTAuth, socketJWTAuth };

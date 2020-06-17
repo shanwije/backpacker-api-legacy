@@ -11,13 +11,13 @@ const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
 const socketIO = require('socket.io');
-const jwt = require('jsonwebtoken');
 const _ = require('lodash');
-const app = require('../app/app');
-const handleSocket = require('../app/common/services/socket');
 const {
     socketJWTAuth,
-} = require('../app/common/middleware/auth/authorizationMiddleware');
+} = require('../app/common/middleware/auth/authenticationMiddleware');
+const app = require('../app/app');
+const handleSocket = require('../app/common/services/socket');
+
 /**
  * Get port from environment and store in Express.
  */
@@ -33,22 +33,12 @@ const server = http.createServer(app);
 /**
  * setting up socket io for chat server.
  */
-const io = socketIO(server);
-// todo move this to authenticationMiddleware
-io.use(async (socket, next) => {
-    try {
-        // eslint-disable-next-line no-param-reassign
-        socket.user = await jwt.verify(
-            _.split(socket.handshake.headers.authorization, ' ')[1],
-            process.env.JWT_SECRET,
-        );
-        return next();
-    } catch (err) {
-        console.log(err.message);
-        socket.emit('error', 'unauthorized');
-    }
-    return null;
+const io = socketIO(server, {
+    pingInterval: 30000,
+    pingTimeout: 18000,
+    cookie: false,
 });
+// io.use((socket, next) => socketJWTAuth(socket, next));
 
 handleSocket(io);
 /**

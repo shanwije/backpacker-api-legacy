@@ -1,7 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
+const _ = require('lodash');
 const jwt = require('jsonwebtoken');
 
-const userIds = {};
+const connectedUsers = {};
 
 function createMessage(userId, userName, messageText) {
     return {
@@ -15,33 +16,39 @@ function createMessage(userId, userName, messageText) {
         },
     };
 }
-const handleSocket = (io) => {
-    io.on('connection', (socket) => {
-        console.log('a user connected!');
-        socket.on('message', async ({ messageText, token }) => {
-            console.log('there a new msg', messageText);
-            try {
-                const user = await jwt.verify(token, process.env.JWT_SECRET);
-                if (user && user.id) {
-                    console.log('messageText', messageText);
-                    userIds[socket.id] = user.id;
-                    const message = createMessage(
-                        userIds[socket.id],
-                        user.email,
-                        messageText,
-                    );
-                    console.log(message);
-                    socket.broadcast.emit('message', message);
-                } else {
-                    console.log('error, jwt user not found');
-                    socket.emit('error', 'no account found');
-                }
-            } catch (err) {
-                console.log(err);
-                socket.emit('error', err.message);
-            }
+const handleSocket = async (io) => {
+    try {
+        io.on('connection', async (socket) => {
+            io.emit('connectedUsers', connectedUsers);
+
+            socket.on('disconnect', (reason) => {
+                console.log('disconnected', reason);
+                delete connectedUsers[socket.id];
+                io.emit('connectedUsers', connectedUsers);
+            });
+
+            socket.on('disconnectSocket', () => {
+                console.log('disconnecting socket');
+                delete connectedUsers[socket.id];
+                socket.disconnect();
+            });
+
+            socket.on('message', async (data) => {
+                const { user } = socket;
+                const { payload } = data;
+                connectedUsers[socket.id] = user.email;
+                socket.broadcast.emit('connectedUsers', connectedUsers);
+                const message = await createMessage(
+                    user.id,
+                    user.email,
+                    payload,
+                );
+                await socket.broadcast.emit('message', message);
+            });
         });
-    });
+    } catch (err) {
+        console.log('socket error ', err.message);
+    }
 };
 
 module.exports = handleSocket;

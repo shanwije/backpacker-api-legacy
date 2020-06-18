@@ -11,8 +11,13 @@ const nodemon = require('nodemon');
 const debug = require('debug')('backpack-api:server');
 const http = require('http');
 const socketIO = require('socket.io');
+const _ = require('lodash');
+const {
+    socketJWTAuth,
+} = require('../app/common/middleware/auth/authenticationMiddleware');
 const app = require('../app/app');
 const handleSocket = require('../app/common/services/socket');
+
 /**
  * Get port from environment and store in Express.
  */
@@ -28,7 +33,13 @@ const server = http.createServer(app);
 /**
  * setting up socket io for chat server.
  */
-const io = socketIO(server);
+const io = socketIO(server, {
+    pingInterval: 30000,
+    pingTimeout: 18000,
+    cookie: false,
+});
+io.use((socket, next) => socketJWTAuth(socket, next));
+
 handleSocket(io);
 /**
  * Listen on provided port, on all network interfaces.

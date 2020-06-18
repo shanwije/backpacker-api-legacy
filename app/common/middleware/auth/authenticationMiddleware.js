@@ -6,7 +6,7 @@ const user = require('../../models/userModal');
 const ErrorResponse = require('../../../misc/ErrorResponse');
 const statusCodes = require('../../../misc/const/statusCodes');
 
-async function jwtAuth(req, res, next) {
+async function httpJWTAuth(req, res, next) {
     const bearerHeader = req.headers.authorization;
 
     if (bearerHeader) {
@@ -60,4 +60,20 @@ async function jwtAuth(req, res, next) {
     }
 }
 
-module.exports = jwtAuth;
+async function socketJWTAuth(socket, next) {
+    try {
+        // eslint-disable-next-line no-param-reassign
+        socket.user = await jwt.verify(
+            _.split(socket.handshake.headers.authorization, ' ')[1],
+            process.env.JWT_SECRET,
+        );
+        console.log(`socket user : ${socket.user.email}`);
+        return next();
+    } catch (err) {
+        console.log('socket authentication error ', err.message);
+        next(new Error(`authentication error ${err.message}`));
+    }
+    return null;
+}
+
+module.exports = { httpJWTAuth, socketJWTAuth };

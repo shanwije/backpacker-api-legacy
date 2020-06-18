@@ -19,26 +19,23 @@ function createMessage(userId, userName, messageText) {
 const handleSocket = async (io) => {
     try {
         io.on('connection', async (socket) => {
-            console.log('new socket connected');
             io.emit('connectedUsers', connectedUsers);
 
             socket.on('disconnect', (reason) => {
                 console.log('disconnected', reason);
-                delete connectedUsers[socket];
+                delete connectedUsers[socket.id];
                 io.emit('connectedUsers', connectedUsers);
             });
 
             socket.on('disconnectSocket', () => {
                 console.log('disconnecting socket');
-                delete connectedUsers[socket];
+                delete connectedUsers[socket.id];
                 socket.disconnect();
             });
 
             socket.on('message', async (data) => {
-                const { jwtToken, payload } = data;
-                console.log('new new msg');
-                const user = await jwt.verify(jwtToken, process.env.JWT_SECRET);
-
+                const { user } = socket;
+                const { payload } = data;
                 connectedUsers[socket.id] = user.email;
                 socket.broadcast.emit('connectedUsers', connectedUsers);
                 const message = await createMessage(
@@ -50,7 +47,7 @@ const handleSocket = async (io) => {
             });
         });
     } catch (err) {
-        console.log(err.message);
+        console.log('socket error ', err.message);
     }
 };
 

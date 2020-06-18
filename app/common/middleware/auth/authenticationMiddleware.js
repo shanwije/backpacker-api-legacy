@@ -71,7 +71,7 @@ async function socketJWTAuth(socket, next) {
         return next();
     } catch (err) {
         console.log('socket authentication error ', err.message);
-        socket.emit('error', 'unauthorized');
+        next(new Error(`authentication error ${err.message}`));
     }
     return null;
 }

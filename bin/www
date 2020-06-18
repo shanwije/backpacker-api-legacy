@@ -38,7 +38,7 @@ const io = socketIO(server, {
     pingTimeout: 18000,
     cookie: false,
 });
-// io.use((socket, next) => socketJWTAuth(socket, next));
+io.use((socket, next) => socketJWTAuth(socket, next));
 
 handleSocket(io);
 /**

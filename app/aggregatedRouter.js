@@ -11,11 +11,12 @@ const { userRoles } = require('./misc/const/loginConst');
 
 router.use('/auth', signInRouter);
 
-router.use(
-    '/users',
-    authenticate,
-    authorize(userRoles.PUBLISHER, userRoles.USER),
-    usersRouter,
-);
+router.use('/users', usersRouter);
 
+// router.use(
+//     '/users',
+//     authenticate,
+//     authorize(userRoles.PUBLISHER, userRoles.USER),
+//     usersRouter,
+// );
 module.exports = router;
